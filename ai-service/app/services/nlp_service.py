@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 
-logger = logging.get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Global model state
 _st_model = None
