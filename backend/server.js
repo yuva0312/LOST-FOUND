@@ -12,6 +12,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Routes
+const authRoutes = require('./routes/authRoutes');
+const lostItemRoutes = require('./routes/lostItemRoutes');
+const foundItemRoutes = require('./routes/foundItemRoutes');
+const matchRoutes = require('./routes/matchRoutes');
+const claimRoutes = require('./routes/claimRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const userRoutes = require('./routes/userRoutes');
+
 // Health check endpoint
 app.get('/api/health', (req, res) => {
   res.status(200).json({
@@ -19,6 +29,17 @@ app.get('/api/health', (req, res) => {
     message: 'Lost & Found Backend is running'
   });
 });
+
+// API Routes
+app.use('/api/auth', authRoutes);
+app.use('/api/lost-items', lostItemRoutes);
+app.use('/api/found-items', foundItemRoutes);
+app.use('/api/matches', matchRoutes);
+app.use('/api/claims', claimRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/users', userRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 

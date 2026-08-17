@@ -8,9 +8,6 @@ const MainLayout = ({ children }) => {
       <main className="main-content">
         {children}
       </main>
-      <footer className="footer">
-        <p>© 2026 AI-Based Campus Lost & Found System. All rights reserved.</p>
-      </footer>
     </div>
   );
 };
