@@ -4,6 +4,7 @@ const FoundItem = require('../models/FoundItem');
 const Match = require('../models/Match');
 const { getAIMatchScore } = require('../services/aiService');
 const { createNotificationHelper } = require('./notificationController');
+const { inMemoryLostItems, inMemoryFoundItems } = require('../utils/inMemoryStore');
 
 // Helper to check DB connection state
 const isDbConnected = () => {
@@ -17,64 +18,75 @@ exports.getMatchesForLostItem = async (req, res) => {
   try {
     const { lostItemId } = req.params;
 
+    console.log('[MatchEngine] Received match request for lostItemId:', lostItemId);
+
     let lostItem = null;
     let candidateFoundItems = [];
 
-    if (isDbConnected()) {
+    // 1. Retrieve the exact Lost Item (DB first if connected, then in-memory store)
+    if (isDbConnected() && mongoose.Types.ObjectId.isValid(lostItemId)) {
       lostItem = await LostItem.findById(lostItemId);
-      if (lostItem) {
-        candidateFoundItems = await FoundItem.find({ status: { $nin: ['closed', 'returned'] } });
-      }
     }
 
-    // Fallback context if testing or DB not connected
     if (!lostItem) {
-      lostItem = {
-        _id: lostItemId,
-        category: 'Watch',
-        itemName: 'Wrist Watch',
-        location: 'Canteen',
-        lostDate: new Date(),
-      };
+      lostItem = inMemoryLostItems.find(
+        (item) => item._id && item._id.toString() === lostItemId.toString()
+      );
     }
+
+    if (!lostItem) {
+      console.warn(`[MatchEngine] Selected lost item with ID ${lostItemId} not found.`);
+      return res.status(404).json({
+        success: false,
+        message: 'Selected lost item report not found.',
+      });
+    }
+
+    console.log('[MatchEngine] Selected Lost Item Details:', {
+      id: lostItem._id || lostItem.id,
+      itemName: lostItem.itemName,
+      category: lostItem.category,
+      location: lostItem.location,
+    });
+
+    // 2. Fetch candidate found items (status not closed or returned)
+    if (isDbConnected()) {
+      candidateFoundItems = await FoundItem.find({ status: { $nin: ['closed', 'returned'] } });
+    }
+
+    // Include/fallback to in-memory found items if DB items are empty or DB not connected
+    if (candidateFoundItems.length === 0 && inMemoryFoundItems.length > 0) {
+      candidateFoundItems = inMemoryFoundItems.filter(
+        (item) => !['closed', 'returned'].includes(item.status)
+      );
+    }
+
+    console.log(`[MatchEngine] Number of Found Items Retrieved: ${candidateFoundItems.length}`);
 
     if (candidateFoundItems.length === 0) {
-      candidateFoundItems = [
-        {
-          _id: 'found_demo_87',
-          category: lostItem.category || 'Watch',
-          itemName: lostItem.itemName || 'Wrist Watch',
-          location: lostItem.location || 'Canteen',
-          foundDate: new Date(),
-          foundTime: 'Around 3 PM',
-          timeRange: '2:30 PM - 3:30 PM',
-          status: 'reported',
-        },
-        {
-          _id: 'found_demo_72',
-          category: lostItem.category || 'Watch',
-          itemName: 'Smart Wristband',
-          location: 'Library',
-          foundDate: new Date(Date.now() - 86400000),
-          foundTime: '11:00 AM',
-          timeRange: '10:30 AM - 11:30 AM',
-          status: 'reported',
-        },
-      ];
+      console.log('[MatchEngine] No candidate found items available to match.');
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+      });
     }
 
-    // Process candidate found items through Python FastAPI AI Service
+    // 3. Process candidate found items through Python FastAPI AI Service
     const matches = [];
 
     for (const foundItem of candidateFoundItems) {
-      // 1. Call Python FastAPI AI Service to calculate semantic similarity & score
+      const foundId = foundItem._id || foundItem.id;
+      console.log(`[MatchEngine] Comparing Lost Item (${lostItem.itemName}) against Found Item ID: ${foundId} (${foundItem.itemName || foundItem.category})`);
+
+      // Call Python FastAPI AI Service to calculate semantic similarity & score
       const aiResult = await getAIMatchScore(lostItem, foundItem);
       const score = aiResult.matchScore;
       const level = aiResult.matchLevel;
 
-      const foundId = foundItem._id || foundItem.id;
+      console.log(`[MatchEngine] Found Item ID: ${foundId} -> Similarity Score: ${score}% (${level})`);
 
-      // 2. Store/upsert match record in MongoDB Match collection if DB is connected
+      // Store/upsert match record in MongoDB Match collection if DB is connected & IDs are valid ObjectIds
       if (isDbConnected() && mongoose.Types.ObjectId.isValid(lostItemId) && mongoose.Types.ObjectId.isValid(foundId)) {
         try {
           await Match.findOneAndUpdate(
@@ -99,11 +111,11 @@ exports.getMatchesForLostItem = async (req, res) => {
             });
           }
         } catch (dbErr) {
-          console.warn('Match model upsert warning:', dbErr.message);
+          console.warn('[MatchEngine] Match model upsert warning:', dbErr.message);
         }
       }
 
-      // 3. PRIVACY GUARANTEE: Redact private found item details (brand, colour, uniqueMark, privateDescription, imageUrl)
+      // PRIVACY GUARANTEE: Redact private found item details (brand, colour, uniqueMark, privateDescription, imageUrl)
       matches.push({
         foundItemId: foundId,
         category: foundItem.category || 'General',
@@ -123,13 +135,15 @@ exports.getMatchesForLostItem = async (req, res) => {
     // 4. Return potential matches sorted by highest match score descending
     matches.sort((a, b) => b.matchScore - a.matchScore);
 
+    console.log(`[MatchEngine] Final Sorted Matches count: ${matches.length}`);
+
     return res.status(200).json({
       success: true,
       count: matches.length,
       data: matches,
     });
   } catch (error) {
-    console.error('Get matches error:', error);
+    console.error('[MatchEngine] Get matches error:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error while fetching matches.',

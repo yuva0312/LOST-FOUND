@@ -1,8 +1,6 @@
 const mongoose = require('mongoose');
 const FoundItem = require('../models/FoundItem');
-
-// Fallback in-memory store if DB is disconnected
-const inMemoryFoundItems = [];
+const { inMemoryFoundItems } = require('../utils/inMemoryStore');
 
 /**
  * Helper function to redact private information for non-owners/public view.

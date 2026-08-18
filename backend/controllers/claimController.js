@@ -3,9 +3,7 @@ const Claim = require('../models/Claim');
 const FoundItem = require('../models/FoundItem');
 const LostItem = require('../models/LostItem');
 const { createNotificationHelper } = require('./notificationController');
-
-// In-memory fallback store when DB is disconnected
-const inMemoryClaims = [];
+const { inMemoryClaims } = require('../utils/inMemoryStore');
 
 const isDbConnected = () => {
   return mongoose.connection && mongoose.connection.readyState === 1;

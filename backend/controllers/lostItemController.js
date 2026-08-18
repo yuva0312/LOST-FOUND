@@ -1,8 +1,6 @@
 const LostItem = require('../models/LostItem');
 const mongoose = require('mongoose');
-
-// In-memory fallback store when MongoDB is not connected
-const inMemoryLostItems = [];
+const { inMemoryLostItems } = require('../utils/inMemoryStore');
 
 // Helper to check DB connection state
 const isDbConnected = () => {

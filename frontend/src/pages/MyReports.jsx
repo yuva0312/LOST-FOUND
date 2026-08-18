@@ -101,6 +101,32 @@ const MyReports = () => {
 
         <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <Link
+            to="/dashboard"
+            className="btn-outline"
+            style={{
+              padding: '0.65rem 1.25rem',
+              fontSize: '0.95rem',
+              borderRadius: '14px',
+              color: '#ffffff',
+              borderColor: 'rgba(255, 255, 255, 0.2)',
+            }}
+          >
+            📊 Dashboard
+          </Link>
+          <Link
+            to="/find-my-item"
+            className="btn-outline"
+            style={{
+              padding: '0.65rem 1.25rem',
+              fontSize: '0.95rem',
+              borderRadius: '14px',
+              color: '#a855f7',
+              borderColor: 'rgba(168, 85, 247, 0.3)',
+            }}
+          >
+            ⚡ Find Matches
+          </Link>
+          <Link
             to="/report-lost"
             className="btn-register-glow"
             style={{ padding: '0.65rem 1.35rem', fontSize: '0.95rem' }}

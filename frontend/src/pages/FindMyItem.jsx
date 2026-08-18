@@ -46,16 +46,21 @@ const FindMyItem = () => {
 
     const lostItemId = lostItem._id || lostItem.id;
 
+    console.log('[FindMyItem Frontend] Selected Lost Item ID:', lostItemId);
+    console.log('[FindMyItem Frontend] Selected Lost Item Details:', lostItem);
+
     try {
       const response = await api.get(`/matches/lost/${lostItemId}`);
+      console.log('[FindMyItem Frontend] Matches response data:', response.data);
       if (response.data.success) {
-        setMatches(response.data.data);
+        console.log('[FindMyItem Frontend] Matches received count:', response.data.data ? response.data.data.length : 0);
+        setMatches(response.data.data || []);
       } else {
         setMatchError('Unable to fetch potential matches.');
       }
     } catch (err) {
-      console.error('Fetch matches error:', err);
-      setMatchError('Server error while searching potential matches.');
+      console.error('[FindMyItem Frontend] Fetch matches error:', err);
+      setMatchError(err.response?.data?.message || 'Server error while searching potential matches.');
     } finally {
       setLoadingMatches(false);
     }

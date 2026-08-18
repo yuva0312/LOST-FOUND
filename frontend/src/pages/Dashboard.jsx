@@ -206,11 +206,6 @@ const Dashboard = () => {
     },
   ];
 
-  const filteredNotifs = notifications.filter((n) => {
-    if (notifFilter === 'unread') return !n.isRead;
-    return true;
-  });
-
   return (
     <div className="dashboard-layout">
       {/* SIDEBAR */}
