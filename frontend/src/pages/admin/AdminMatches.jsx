@@ -14,17 +14,7 @@ const AdminMatches = () => {
           setMatches(res.data.data || []);
         }
       } catch (err) {
-        console.error('Fetch matches error:', err);
-        setMatches([
-          {
-            _id: 'MATCH-301',
-            lostItemId: { itemName: 'Silver Rolex Watch', category: 'Watch' },
-            foundItemId: { itemName: 'Silver Wrist Watch', location: 'Canteen Counter 2' },
-            matchScore: 87,
-            matchLevel: 'High Potential Match',
-            status: 'potential_match',
-          },
-        ]);
+        setMatches([]);
       } finally {
         setLoading(false);
       }

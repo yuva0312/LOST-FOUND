@@ -33,11 +33,11 @@ const AdminLogin = () => {
     } catch (err) {
       console.error('Admin login error:', err);
       // Fallback dev mode login for instant testing
-      if (identifier === 'admin@campus.edu' && password === 'admin123') {
+      if ((identifier === 'admin@campus.edu' || identifier === 'studentcare@campus.edu') && password === 'admin123') {
         const dummyUser = {
           id: 'admin_user_id',
-          fullName: 'Lost & Found Team Admin',
-          email: 'admin@campus.edu',
+          fullName: 'Student Care Team Admin',
+          email: identifier,
           role: 'admin',
         };
         login(dummyUser, 'demo_admin_jwt_token');
@@ -89,10 +89,10 @@ const AdminLogin = () => {
             🛡️
           </div>
           <h2 style={{ fontSize: '1.8rem', fontWeight: '800', color: '#ffffff', margin: '0 0 0.5rem' }}>
-            Lost & Found Team
+            Student Care Team
           </h2>
           <p style={{ color: '#ec4899', fontSize: '0.9rem', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Admin & Staff Authentication
+            Student Care Authentication
           </p>
         </div>
 
@@ -115,7 +115,7 @@ const AdminLogin = () => {
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div>
             <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem' }}>
-              Admin Email / ID
+              Student Care Email / ID
             </label>
             <input
               type="text"
@@ -139,7 +139,7 @@ const AdminLogin = () => {
 
           <div>
             <label style={{ display: 'block', color: '#cbd5e1', fontSize: '0.85rem', fontWeight: '600', marginBottom: '0.4rem' }}>
-              Admin Password
+              Student Care Password
             </label>
             <input
               type="password"
@@ -177,7 +177,7 @@ const AdminLogin = () => {
               boxShadow: '0 10px 20px -5px rgba(236, 72, 153, 0.5)',
             }}
           >
-            {loading ? 'Authenticating Authority...' : 'Sign In as Admin'}
+            {loading ? 'Authenticating Authority...' : 'Sign In as Student Care Admin'}
           </button>
         </form>
 

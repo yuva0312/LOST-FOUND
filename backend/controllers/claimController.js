@@ -3,7 +3,7 @@ const Claim = require('../models/Claim');
 const FoundItem = require('../models/FoundItem');
 const LostItem = require('../models/LostItem');
 const { createNotificationHelper } = require('./notificationController');
-const { inMemoryClaims } = require('../utils/inMemoryStore');
+const { inMemoryClaims, saveInMemoryStore } = require('../utils/inMemoryStore');
 
 const isDbConnected = () => {
   return mongoose.connection && mongoose.connection.readyState === 1;
@@ -31,7 +31,7 @@ const compareField = (input, target) => {
 };
 
 /**
- * Calculate ownership verification score comparing student's claim answers with actual found/lost item record.
+ * Calculate Student Care verification score comparing student's claim answers with actual found/lost item record.
  * Evaluates: Brand, Colour, Unique Mark, Location, Time, Special Feature.
  */
 const calculateVerificationScore = (answers, foundItem, lostItem) => {
@@ -140,6 +140,7 @@ const createClaim = async (req, res) => {
       };
 
       inMemoryClaims.push(newClaim);
+      if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
 
       await createNotificationHelper({
         userId: studentId,
@@ -180,25 +181,44 @@ const getMyClaims = async (req, res) => {
       });
     }
 
-    if (isDbConnected()) {
-      const claims = await Claim.find({ studentId }).sort({ createdAt: -1 });
-      return res.status(200).json({
-        success: true,
-        count: claims.length,
-        data: claims,
-      });
-    } else {
-      const targetId = studentId.toString();
-      const claims = inMemoryClaims
-        .filter((c) => c && c.studentId && c.studentId.toString() === targetId)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const targetId = studentId ? studentId.toString() : '';
+    let dbClaims = [];
 
-      return res.status(200).json({
-        success: true,
-        count: claims.length,
-        data: claims,
-      });
+    if (isDbConnected() && studentId) {
+      dbClaims = await Claim.find({ studentId }).sort({ createdAt: -1 });
     }
+
+    const memClaims = inMemoryClaims.filter(
+      (c) => c && c.studentId && c.studentId.toString() === targetId
+    );
+
+    const map = new Map();
+    dbClaims.forEach((c) => {
+      const cObj = c.toObject ? c.toObject() : { ...c };
+      map.set(String(cObj._id), cObj);
+    });
+
+    memClaims.forEach((memC) => {
+      const memId = String(memC._id);
+      if (map.has(memId)) {
+        const existing = map.get(memId);
+        if (memC.status && memC.status !== 'pending') {
+          existing.status = memC.status;
+        }
+      } else {
+        map.set(memId, memC);
+      }
+    });
+
+    const finalClaimsList = Array.from(map.values()).sort(
+      (a, b) => new Date(b.createdAt || Date.now()) - new Date(a.createdAt || Date.now())
+    );
+
+    return res.status(200).json({
+      success: true,
+      count: finalClaimsList.length,
+      data: finalClaimsList,
+    });
   } catch (error) {
     console.error('Get My Claims Error:', error);
     return res.status(500).json({

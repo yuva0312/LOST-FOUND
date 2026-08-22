@@ -3,6 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import Profile from './Profile';
+import MyClaims from './MyClaims';
+import MyReports from './MyReports';
+import FindMyItem from './FindMyItem';
+import ReportLost from './ReportLost';
+import ReportFound from './ReportFound';
 
 const Dashboard = () => {
   const { user, logout } = useContext(AuthContext);
@@ -14,6 +19,18 @@ const Dashboard = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
   const [showNotifMenu, setShowNotifMenu] = useState(false);
+
+  // Dashboard DB Data state
+  const [dashboardData, setDashboardData] = useState({
+    stats: {
+      lostReports: 0,
+      potentialMatches: 0,
+      pendingClaims: 0,
+      recoveredItems: 0,
+    },
+    recentActivity: [],
+  });
+  const [loadingDashboard, setLoadingDashboard] = useState(true);
 
   const studentName = user?.fullName || 'Student';
   const studentInitial = studentName.charAt(0).toUpperCase();
@@ -28,42 +45,56 @@ const Dashboard = () => {
       }
     } catch (err) {
       console.error('Fetch notifications error:', err);
-      // Dev mode fallback notifications
-      setNotifications([
-        {
-          _id: 'N-101',
-          title: 'Potential Match Found',
-          message: 'A potential match was found for your lost Watch. Match Score: 87%.',
-          type: 'potential_match',
-          isRead: false,
-          createdAt: new Date(),
-        },
-        {
-          _id: 'N-102',
-          title: 'Claim Submitted',
-          message: 'Your claim has been submitted to the Lost & Found Team.',
-          type: 'claim_submitted',
-          isRead: false,
-          createdAt: new Date(Date.now() - 1800000),
-        },
-        {
-          _id: 'N-103',
-          title: 'Claim Approved',
-          message: 'Your claim has been approved. Contact the Lost & Found Team to collect your item.',
-          type: 'claim_approved',
-          isRead: true,
-          createdAt: new Date(Date.now() - 86400000),
-        },
-      ]);
-      setUnreadCount(2);
+      setNotifications([]);
+      setUnreadCount(0);
     } finally {
       setLoadingNotifs(false);
     }
   };
 
+  const fetchDashboardData = async () => {
+    try {
+      setLoadingDashboard(true);
+      const res = await api.get('/users/dashboard');
+      if (res.data?.success) {
+        setDashboardData(res.data.data);
+      }
+    } catch (err) {
+      console.error('Fetch dashboard data error:', err);
+      setDashboardData({
+        stats: {
+          lostReports: 0,
+          potentialMatches: 0,
+          pendingClaims: 0,
+          recoveredItems: 0,
+        },
+        recentActivity: [],
+      });
+    } finally {
+      setLoadingDashboard(false);
+    }
+  };
+
   useEffect(() => {
     fetchNotifications();
+    fetchDashboardData();
   }, []);
+
+  const formatTimeAgo = (dateInput) => {
+    if (!dateInput) return 'Recently';
+    const date = new Date(dateInput);
+    if (isNaN(date.getTime())) return 'Recently';
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+    if (diffInSeconds < 60) return 'Just now';
+    const diffInMinutes = Math.floor(diffInSeconds / 60);
+    if (diffInMinutes < 60) return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 30) return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    return date.toLocaleDateString();
+  };
 
   const handleMarkAsRead = async (id, e) => {
     e?.stopPropagation();
@@ -164,46 +195,11 @@ const Dashboard = () => {
     },
   ];
 
-  const stats = [
-    { label: 'Lost Reports', value: '12', icon: '🔍', color: 'rgba(239, 68, 68, 0.2)' },
-    { label: 'Potential Matches', value: '4', icon: '⚡', color: 'rgba(99, 102, 241, 0.2)' },
-    { label: 'Pending Claims', value: '2', icon: '🏷️', color: 'rgba(245, 158, 11, 0.2)' },
-    { label: 'Recovered Items', value: '18', icon: '✅', color: 'rgba(16, 185, 129, 0.2)' },
-  ];
-
-  const recentActivity = [
-    {
-      id: 1,
-      item: 'Space Black MacBook Air M2',
-      location: 'Central Library (2nd Floor)',
-      date: '2 hours ago',
-      status: 'Found',
-      statusClass: 'status-found'
-    },
-    {
-      id: 2,
-      item: 'Blue Leather Wallet (Student ID inside)',
-      location: 'Campus Student Cafeteria',
-      date: '5 hours ago',
-      status: 'Lost',
-      statusClass: 'status-lost'
-    },
-    {
-      id: 3,
-      item: 'AirPods Pro 2nd Gen Case',
-      location: 'Science Block Hall B',
-      date: '1 day ago',
-      status: 'Matched',
-      statusClass: 'status-matched'
-    },
-    {
-      id: 4,
-      item: 'Sony WH-1000XM5 Headphones',
-      location: 'Sports Complex Gym',
-      date: '2 days ago',
-      status: 'Claimed',
-      statusClass: 'status-claimed'
-    },
+  const statsList = [
+    { label: 'Lost Reports', value: dashboardData.stats?.lostReports || 0, icon: '🔍', color: 'rgba(239, 68, 68, 0.2)' },
+    { label: 'Potential Matches', value: dashboardData.stats?.potentialMatches || 0, icon: '⚡', color: 'rgba(99, 102, 241, 0.2)' },
+    { label: 'Pending Claims', value: dashboardData.stats?.pendingClaims || 0, icon: '🏷️', color: 'rgba(245, 158, 11, 0.2)' },
+    { label: 'Recovered Items', value: dashboardData.stats?.recoveredItems || 0, icon: '✅', color: 'rgba(16, 185, 129, 0.2)' },
   ];
 
   return (
@@ -223,21 +219,11 @@ const Dashboard = () => {
               key={item.id}
               className={`sidebar-link ${activeTab === item.id ? 'active' : ''}`}
               onClick={() => {
-                if (item.id === 'Report Lost Item') {
-                  navigate('/report-lost');
-                } else if (item.id === 'Report Found Item') {
-                  navigate('/report-found');
-                } else if (item.id === 'Find My Item') {
-                  navigate('/find-my-item');
-                } else if (item.id === 'My Reports') {
-                  navigate('/my-reports');
-                } else if (item.id === 'My Claims' || item.label === 'My Claims') {
-                  navigate('/my-claims');
-                } else {
-                  setActiveTab(item.id);
-                  if (item.id === 'Notifications') {
-                    fetchNotifications();
-                  }
+                setActiveTab(item.id);
+                if (item.id === 'Notifications') {
+                  fetchNotifications();
+                } else if (item.id === 'Dashboard') {
+                  fetchDashboardData();
                 }
               }}
             >
@@ -433,30 +419,24 @@ const Dashboard = () => {
         {/* DASHBOARD BODY */}
         <main className="dashboard-content">
           {activeTab === 'Profile' ? (
-            /* LIVE PROFILE TAB VIEW */
             <Profile />
-          ) : activeTab !== 'Dashboard' ? (
-            /* TAB PLACEHOLDER FOR OTHER NAV ITEMS */
-            <div className="glass-card placeholder-container">
-              <div className="placeholder-badge">{activeTab} Module</div>
-              <h2 className="placeholder-title">{activeTab}</h2>
-              <p className="placeholder-text">
-                The {activeTab} view is active.
-              </p>
-              <button
-                className="btn btn-main"
-                onClick={() => setActiveTab('Dashboard')}
-              >
-                Back to Main Dashboard
-              </button>
-            </div>
+          ) : activeTab === 'My Claims' || activeTab === 'my-claims' ? (
+            <MyClaims />
+          ) : activeTab === 'My Reports' || activeTab === 'my-reports' ? (
+            <MyReports />
+          ) : activeTab === 'Find My Item' || activeTab === 'find-my-item' ? (
+            <FindMyItem />
+          ) : activeTab === 'Report Lost Item' || activeTab === 'report-lost' ? (
+            <ReportLost onReturnToDashboard={() => setActiveTab('Dashboard')} />
+          ) : activeTab === 'Report Found Item' || activeTab === 'report-found' ? (
+            <ReportFound onReturnToDashboard={() => setActiveTab('Dashboard')} />
           ) : (
             /* MAIN DASHBOARD CONTENT */
             <>
               {/* STATISTICS CARDS SECTION */}
               <section>
                 <div className="stats-grid">
-                  {stats.map((stat, idx) => (
+                  {statsList.map((stat, idx) => (
                     <div className="stat-card" key={idx}>
                       <div className="stat-info">
                         <span className="stat-value">{stat.value}</span>
@@ -473,7 +453,7 @@ const Dashboard = () => {
                 </div>
               </section>
 
-              {/* SIX MAIN ACTION CARDS SECTION */}
+              {/* ACTION CARDS SECTION */}
               <section>
                 <h2 className="section-header-title">
                   <span>⚡</span> Quick Actions
@@ -521,32 +501,39 @@ const Dashboard = () => {
                   <span>🕒</span> Recent Campus Activity
                 </h2>
                 <div className="activity-card">
-                  <div className="activity-table-wrapper">
-                    <table className="activity-table">
-                      <thead>
-                        <tr>
-                          <th>Item Description</th>
-                          <th>Location</th>
-                          <th>Reported</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {recentActivity.map((activity) => (
-                          <tr key={activity.id}>
-                            <td style={{ fontWeight: '600' }}>{activity.item}</td>
-                            <td style={{ color: 'var(--text-secondary)' }}>{activity.location}</td>
-                            <td style={{ color: 'var(--text-muted)' }}>{activity.date}</td>
-                            <td>
-                              <span className={`status-pill ${activity.statusClass}`}>
-                                ● {activity.status}
-                              </span>
-                            </td>
+                  {dashboardData.recentActivity.length === 0 ? (
+                    <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8' }}>
+                      <span style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem' }}>📭</span>
+                      <p style={{ margin: 0, fontSize: '0.95rem', fontWeight: '500' }}>No recent campus activity.</p>
+                    </div>
+                  ) : (
+                    <div className="activity-table-wrapper">
+                      <table className="activity-table">
+                        <thead>
+                          <tr>
+                            <th>Item Description</th>
+                            <th>Location</th>
+                            <th>Reported</th>
+                            <th>Status</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                        </thead>
+                        <tbody>
+                          {dashboardData.recentActivity.map((activity) => (
+                            <tr key={activity.id}>
+                              <td style={{ fontWeight: '600' }}>{activity.item}</td>
+                              <td style={{ color: 'var(--text-secondary)' }}>{activity.location}</td>
+                              <td style={{ color: 'var(--text-muted)' }}>{formatTimeAgo(activity.date)}</td>
+                              <td>
+                                <span className={`status-pill ${activity.statusClass}`}>
+                                  ● {activity.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
               </section>
             </>

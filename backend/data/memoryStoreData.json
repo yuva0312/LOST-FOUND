@@ -1,0 +1,133 @@
+{
+  "inMemoryLostItems": [],
+  "inMemoryFoundItems": [],
+  "inMemoryClaims": [
+    {
+      "_id": "6a88f7a9edcd2dff70cd1c2c",
+      "studentId": "6a88f3e8148b7a6c02d642c2",
+      "lostItemId": "6a88f70eedcd2dff70cd1bf9",
+      "foundItemId": "6a88f758edcd2dff70cd1c0f",
+      "verificationAnswers": {
+        "brand": "apple",
+        "colour": "white",
+        "uniqueMark": "button type stap",
+        "lostLocation": "entrance of gym",
+        "lostDateAndTime": "21 august around 10:30am",
+        "additionalFeature": "butterfly wallpaper"
+      },
+      "verificationScore": 83,
+      "status": "completed",
+      "reviewedAt": "2026-08-22T04:11:07.041Z",
+      "createdAt": "2026-08-22T01:13:13.873Z"
+    },
+    {
+      "_id": "6a8879aaf772702ba72409fe",
+      "studentId": "6a85e4ce232ecbd7bbbff1e4",
+      "lostItemId": "6a88783ff772702ba72409b4",
+      "foundItemId": "6a88789df772702ba72409c0",
+      "verificationAnswers": {
+        "brand": "hp",
+        "colour": "silver",
+        "uniqueMark": "custom sticker on top",
+        "lostLocation": "enterance of indoor auditorium",
+        "lostDateAndTime": "21 august around 11:30 am",
+        "additionalFeature": "wallper of the god in lockscreen will appear"
+      },
+      "verificationScore": 50,
+      "status": "rejected",
+      "reviewedAt": "2026-08-22T04:11:20.079Z",
+      "createdAt": "2026-08-21T16:15:38.508Z"
+    },
+    {
+      "_id": "6a886b8bf772702ba7240909",
+      "studentId": "6a85e4ce232ecbd7bbbff1e4",
+      "lostItemId": "6a886a4df772702ba72408e3",
+      "foundItemId": "6a886b19f772702ba72408ef",
+      "verificationAnswers": {
+        "brand": "samsung",
+        "colour": "light purple",
+        "uniqueMark": "custom keychain",
+        "lostLocation": "2nd floor B block room no:205 ",
+        "lostDateAndTime": "21 july around 11:30am",
+        "additionalFeature": "wallpaper of me"
+      },
+      "verificationScore": 61,
+      "status": "rejected",
+      "reviewedAt": "2026-08-22T04:11:23.183Z",
+      "createdAt": "2026-08-21T15:15:23.150Z"
+    },
+    {
+      "_id": "6a85e745232ecbd7bbbff228",
+      "studentId": "6a85e4ce232ecbd7bbbff1e4",
+      "lostItemId": "6a85e605232ecbd7bbbff1ff",
+      "foundItemId": "6a85e666232ecbd7bbbff20b",
+      "verificationAnswers": {
+        "brand": "Wildhorn",
+        "colour": "brown",
+        "uniqueMark": "horse symbol",
+        "lostLocation": "enterance of gym",
+        "lostDateAndTime": "17 july 2026 01:00 pm",
+        "additionalFeature": "Atm card and some amt of money"
+      },
+      "verificationScore": 86,
+      "status": "approved",
+      "reviewedAt": "2026-08-22T04:11:27.408Z",
+      "createdAt": "2026-08-19T17:26:29.254Z"
+    },
+    {
+      "_id": "6a84a79123e71ba64b037aac",
+      "studentId": "6a84a47b23e71ba64b037a5e",
+      "lostItemId": "6a84a64d23e71ba64b037a83",
+      "foundItemId": "6a84a6bc23e71ba64b037a8f",
+      "verificationAnswers": {
+        "brand": "samsung",
+        "colour": "silver",
+        "uniqueMark": "square shape with  little curve",
+        "lostLocation": "A BLOCK 2nd floor room no:204 classroom",
+        "lostDateAndTime": "15-08-2026 around 11:30",
+        "additionalFeature": "inside the earphone buds will be in white with silver coated"
+      },
+      "verificationScore": 51,
+      "status": "rejected",
+      "reviewedAt": "2026-08-22T04:11:35.863Z",
+      "createdAt": "2026-08-18T18:42:25.544Z"
+    },
+    {
+      "_id": "6a8927b9480788c68f2f89fb",
+      "studentId": "6a89259b480788c68f2f8967",
+      "lostItemId": "6a892685480788c68f2f89a1",
+      "foundItemId": "6a8926c6480788c68f2f89b7",
+      "verificationAnswers": {
+        "brand": "lenova",
+        "colour": "dark blue",
+        "uniqueMark": " sticker on top",
+        "lostLocation": "entrance of  hutcafe on leftside table",
+        "lostDateAndTime": "20 august 10:30am",
+        "additionalFeature": "dog wallaper"
+      },
+      "verificationScore": 76,
+      "status": "completed",
+      "reviewedAt": "2026-08-22T04:39:19.922Z",
+      "createdAt": "2026-08-22T04:38:17.728Z"
+    },
+    {
+      "_id": "6a892d43480788c68f2f8ab7",
+      "studentId": "6a89259b480788c68f2f8967",
+      "lostItemId": "6a89299e480788c68f2f8a8d",
+      "foundItemId": "6a892aef480788c68f2f8a97",
+      "verificationAnswers": {
+        "brand": "wildcraft",
+        "colour": "black",
+        "uniqueMark": "keychain hanging",
+        "lostLocation": "entrance of JR1",
+        "lostDateAndTime": "17 AUGUAT 2026 AROUND 01:30PM",
+        "additionalFeature": "BLUE SPIRAL NOTEBOOK"
+      },
+      "verificationScore": 59,
+      "status": "rejected",
+      "reviewedAt": "2026-08-22T05:02:18.429Z",
+      "createdAt": "2026-08-22T05:01:55.801Z"
+    }
+  ],
+  "inMemoryNotifications": []
+}

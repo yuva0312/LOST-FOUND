@@ -15,19 +15,7 @@ const AdminLostItems = () => {
         }
       } catch (err) {
         console.error('Fetch lost items error:', err);
-        setItems([
-          {
-            _id: 'LOST-101',
-            itemName: 'Black Leather Wallet',
-            category: 'Wallet',
-            location: 'Library 2nd Floor',
-            lostDate: new Date(),
-            status: 'searching',
-            brand: 'Fossil',
-            colour: 'Black',
-            userId: { fullName: 'Sarah Jenkins', email: 'sarah.j@campus.edu' },
-          },
-        ]);
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -48,6 +36,10 @@ const AdminLostItems = () => {
 
       {loading ? (
         <div style={{ padding: '3rem', textAlign: 'center', color: '#a855f7' }}>Loading lost reports...</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'rgba(15, 23, 42, 0.75)', border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: '16px', color: '#94a3b8' }}>
+          No lost reports submitted yet.
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
           {items.map((item) => (

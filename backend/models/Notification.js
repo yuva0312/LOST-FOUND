@@ -19,7 +19,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['potential_match', 'claim_submitted', 'claim_approved', 'claim_rejected', 'item_returned'],
+      enum: ['potential_match', 'claim_submitted', 'claim_approved', 'claim_rejected', 'item_returned', 'item_recovered', 'recovered'],
       required: true,
     },
     relatedItemId: {

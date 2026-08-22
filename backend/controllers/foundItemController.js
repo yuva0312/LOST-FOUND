@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 const FoundItem = require('../models/FoundItem');
-const { inMemoryFoundItems } = require('../utils/inMemoryStore');
+const { inMemoryFoundItems, saveInMemoryStore } = require('../utils/inMemoryStore');
 
 /**
  * Helper function to redact private information for non-owners/public view.
@@ -109,6 +109,7 @@ exports.createFoundItem = async (req, res) => {
       };
 
       inMemoryFoundItems.push(newItem);
+      if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
 
       return res.status(201).json({
         success: true,

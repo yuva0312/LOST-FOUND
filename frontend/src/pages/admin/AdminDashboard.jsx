@@ -18,31 +18,41 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchDashboardStats = async () => {
+    let isMounted = true;
+
+    const fetchDashboardStats = async (isInitial = false) => {
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         const res = await api.get('/admin/dashboard');
-        if (res.data?.success) {
+        if (res.data?.success && isMounted) {
           setStats(res.data.data);
         }
       } catch (err) {
         console.error('Fetch dashboard stats error:', err);
-        // Fallback dev mock stats
-        setStats({
-          totalLostReports: 14,
-          totalFoundReports: 18,
-          potentialMatches: 9,
-          pendingClaims: 4,
-          approvedClaims: 6,
-          rejectedClaims: 2,
-          returnedItems: 5,
-        });
       } finally {
-        setLoading(false);
+        if (isInitial && isMounted) setLoading(false);
       }
     };
 
-    fetchDashboardStats();
+    fetchDashboardStats(true);
+
+    const handleUpdateEvent = () => fetchDashboardStats(false);
+
+    window.addEventListener('claimStatusChanged', handleUpdateEvent);
+    window.addEventListener('dashboardStatsUpdated', handleUpdateEvent);
+    window.addEventListener('focus', handleUpdateEvent);
+
+    const intervalId = setInterval(() => {
+      fetchDashboardStats(false);
+    }, 3000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('claimStatusChanged', handleUpdateEvent);
+      window.removeEventListener('dashboardStatsUpdated', handleUpdateEvent);
+      window.removeEventListener('focus', handleUpdateEvent);
+      clearInterval(intervalId);
+    };
   }, []);
 
   const statCards = [
@@ -60,10 +70,10 @@ const AdminDashboard = () => {
       {/* PAGE TITLE */}
       <div style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '2rem', fontWeight: '800', margin: '0 0 0.5rem', color: '#ffffff' }}>
-          Admin Dashboard Overview
+          SC Dashboard Overview
         </h1>
         <p style={{ color: '#94a3b8', margin: 0, fontSize: '0.95rem' }}>
-          Live metrics, claim review controls, and inventory governance for the Lost & Found Team.
+          Live metrics, claim review controls, and inventory governance for the Student Care Team.
         </p>
       </div>
 

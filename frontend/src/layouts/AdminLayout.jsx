@@ -31,10 +31,10 @@ const AdminLayout = ({ children }) => {
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: '800', color: '#ffffff' }}>
-                Lost & Found Team Portal
+                Student Care Team Portal
               </h2>
               <span style={{ fontSize: '0.75rem', color: '#ec4899', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Administrative Authority Control
+                Student Care & Governance Control
               </span>
             </div>
           </div>
@@ -71,7 +71,7 @@ const AdminLayout = ({ children }) => {
         {/* SIDEBAR NAVIGATION */}
         <aside style={{ backgroundColor: 'rgba(15, 23, 42, 0.6)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: '16px', padding: '1rem', height: 'fit-content' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: '800', textTransform: 'uppercase', marginBottom: '0.75rem', paddingLeft: '0.5rem' }}>
-            Main Admin Menu
+            Main SC Menu
           </div>
           <nav style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
             <NavLink

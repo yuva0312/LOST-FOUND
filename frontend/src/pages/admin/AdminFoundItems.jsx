@@ -14,21 +14,7 @@ const AdminFoundItems = () => {
           setItems(res.data.data || []);
         }
       } catch (err) {
-        console.error('Fetch found items error:', err);
-        setItems([
-          {
-            _id: 'FOUND-201',
-            itemName: 'Silver Wrist Watch',
-            category: 'Watch',
-            location: 'Canteen Counter 2',
-            foundDate: new Date(),
-            status: 'reported',
-            brand: 'Rolex',
-            colour: 'Silver',
-            uniqueMark: 'AV initials on clasp',
-            specialFeature: 'Scratch near bezel',
-          },
-        ]);
+        setItems([]);
       } finally {
         setLoading(false);
       }
@@ -49,6 +35,10 @@ const AdminFoundItems = () => {
 
       {loading ? (
         <div style={{ padding: '3rem', textAlign: 'center', color: '#a855f7' }}>Loading found inventory...</div>
+      ) : items.length === 0 ? (
+        <div style={{ padding: '3rem', textAlign: 'center', backgroundColor: 'rgba(15, 23, 42, 0.75)', border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: '16px', color: '#94a3b8' }}>
+          No found reports submitted yet.
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.25rem' }}>
           {items.map((item) => (

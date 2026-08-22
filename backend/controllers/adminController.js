@@ -113,35 +113,88 @@ const adminLogin = async (req, res) => {
 // @access  Private/Admin
 const getDashboardStats = async (req, res) => {
   try {
-    let totalLostReports = 0;
-    let totalFoundReports = 0;
-    let potentialMatches = 0;
-    let pendingClaims = 0;
-    let approvedClaims = 0;
-    let rejectedClaims = 0;
-    let returnedItems = 0;
+    const { inMemoryLostItems, inMemoryFoundItems, inMemoryClaims } = require('../utils/inMemoryStore');
+
+    let dbLostCount = 0;
+    let dbFoundCount = 0;
+    let dbMatchCount = 0;
+    let dbClaims = [];
+    let dbFoundItems = [];
+    let dbLostItems = [];
 
     if (isDbConnected()) {
-      totalLostReports = await LostItem.countDocuments();
-      totalFoundReports = await FoundItem.countDocuments();
-      potentialMatches = await Match.countDocuments();
-
-      pendingClaims = await Claim.countDocuments({ status: 'pending' });
-      approvedClaims = await Claim.countDocuments({ status: 'approved' });
-      rejectedClaims = await Claim.countDocuments({ status: 'rejected' });
-      returnedItems = await FoundItem.countDocuments({
-        status: { $in: ['claimed', 'returned'] },
-      });
-    } else {
-      // Dev mode fallback mock counters
-      totalLostReports = 12;
-      totalFoundReports = 15;
-      potentialMatches = 8;
-      pendingClaims = 3;
-      approvedClaims = 5;
-      rejectedClaims = 2;
-      returnedItems = 4;
+      dbLostCount = await LostItem.countDocuments();
+      dbFoundCount = await FoundItem.countDocuments();
+      dbMatchCount = await Match.countDocuments();
+      dbClaims = await Claim.find();
+      dbFoundItems = await FoundItem.find();
+      dbLostItems = await LostItem.find();
     }
+
+    // Merge Claims (DB + inMemory) to calculate metrics without losing any items
+    const combinedClaimsMap = new Map();
+    if (dbClaims && dbClaims.length > 0) {
+      dbClaims.forEach((c) => {
+        const cObj = c.toObject ? c.toObject() : { ...c };
+        combinedClaimsMap.set(String(cObj._id), cObj);
+      });
+    }
+
+    if (inMemoryClaims && inMemoryClaims.length > 0) {
+      inMemoryClaims.forEach((memC) => {
+        const memId = String(memC._id);
+        if (combinedClaimsMap.has(memId)) {
+          const existing = combinedClaimsMap.get(memId);
+          if (memC.status && memC.status !== 'pending') {
+            existing.status = memC.status;
+            if (memC.reviewedAt) existing.reviewedAt = memC.reviewedAt;
+          }
+        } else {
+          combinedClaimsMap.set(memId, memC);
+        }
+      });
+    }
+
+    const allClaims = Array.from(combinedClaimsMap.values());
+
+    const getNormStatus = (c) => (c && c.status ? String(c.status).toLowerCase().trim() : '');
+
+    const pendingClaims = allClaims.filter(
+      (c) => getNormStatus(c) === 'pending' || getNormStatus(c) === 'under_review'
+    ).length;
+
+    // Approved claims: claims where status is exactly 'approved'
+    const approvedClaims = allClaims.filter(
+      (c) => getNormStatus(c) === 'approved'
+    ).length;
+
+    // Rejected claims: claims where status is 'rejected'
+    const rejectedClaims = allClaims.filter(
+      (c) => getNormStatus(c) === 'rejected'
+    ).length;
+
+    // Recovered / Returned items calculation
+    const recoveredClaimsCount = allClaims.filter(
+      (c) => getNormStatus(c) === 'completed' || getNormStatus(c) === 'recovered' || getNormStatus(c) === 'returned'
+    ).length;
+
+    const dbReturnedFound = dbFoundItems.filter((i) => i && ['claimed', 'returned'].includes(getNormStatus(i))).length;
+    const memReturnedFound = inMemoryFoundItems.filter((i) => i && ['claimed', 'returned'].includes(getNormStatus(i))).length;
+
+    const dbReturnedLost = dbLostItems.filter((i) => i && ['claimed', 'recovered'].includes(getNormStatus(i))).length;
+    const memReturnedLost = inMemoryLostItems.filter((i) => i && ['claimed', 'recovered'].includes(getNormStatus(i))).length;
+
+    const returnedItems = Math.max(
+      recoveredClaimsCount,
+      dbReturnedFound,
+      memReturnedFound,
+      dbReturnedLost,
+      memReturnedLost
+    );
+
+    const totalLostReports = Math.max(dbLostCount, inMemoryLostItems.length);
+    const totalFoundReports = Math.max(dbFoundCount, inMemoryFoundItems.length);
+    const potentialMatches = dbMatchCount;
 
     return res.status(200).json({
       success: true,
@@ -169,30 +222,53 @@ const getDashboardStats = async (req, res) => {
 // @access  Private/Admin
 const getAllClaims = async (req, res) => {
   try {
+    const { inMemoryClaims } = require('../utils/inMemoryStore');
+    let dbClaims = [];
+
     if (isDbConnected()) {
-      const claims = await Claim.find()
+      dbClaims = await Claim.find()
         .populate('studentId', 'fullName email phone department year studentId')
         .populate('lostItemId')
         .populate('foundItemId')
         .sort({ createdAt: -1 });
+    }
 
-      return res.status(200).json({
-        success: true,
-        count: claims.length,
-        data: claims,
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        count: 0,
-        data: [],
+    const combinedClaimsMap = new Map();
+    if (dbClaims && dbClaims.length > 0) {
+      dbClaims.forEach((c) => {
+        const cObj = c.toObject ? c.toObject() : { ...c };
+        combinedClaimsMap.set(String(cObj._id), cObj);
       });
     }
+    if (inMemoryClaims && inMemoryClaims.length > 0) {
+      inMemoryClaims.forEach((memC) => {
+        const memId = String(memC._id);
+        if (combinedClaimsMap.has(memId)) {
+          const existing = combinedClaimsMap.get(memId);
+          if (memC.status && memC.status !== 'pending') {
+            existing.status = memC.status;
+            if (memC.reviewedAt) existing.reviewedAt = memC.reviewedAt;
+          }
+        } else {
+          combinedClaimsMap.set(memId, memC);
+        }
+      });
+    }
+
+    const allClaimsList = Array.from(combinedClaimsMap.values());
+
+    return res.status(200).json({
+      success: true,
+      count: allClaimsList.length,
+      data: allClaimsList,
+    });
   } catch (error) {
     console.error('Get All Claims Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error retrieving claims.',
+    const { inMemoryClaims } = require('../utils/inMemoryStore');
+    return res.status(200).json({
+      success: true,
+      count: inMemoryClaims.length,
+      data: inMemoryClaims,
     });
   }
 };
@@ -203,58 +279,193 @@ const getAllClaims = async (req, res) => {
 const approveClaim = async (req, res) => {
   try {
     const { id } = req.params;
-    const adminId = req.user.id || req.user._id;
+    const rawAdminId = req.user ? (req.user.id || req.user._id) : null;
+    const adminId = mongoose.Types.ObjectId.isValid(rawAdminId) ? rawAdminId : null;
+    const { inMemoryClaims, inMemoryFoundItems, inMemoryLostItems, saveInMemoryStore } = require('../utils/inMemoryStore');
 
-    if (isDbConnected()) {
+    let approvedClaim = null;
+
+    if (isDbConnected() && mongoose.Types.ObjectId.isValid(id)) {
       const claim = await Claim.findById(id);
-      if (!claim) {
-        return res.status(404).json({
-          success: false,
-          message: 'Claim request not found.',
+      if (claim) {
+        claim.status = 'approved';
+        if (adminId) claim.reviewedBy = adminId;
+        claim.reviewedAt = new Date();
+        await claim.save();
+
+        if (claim.foundItemId) {
+          await FoundItem.findByIdAndUpdate(claim.foundItemId, { status: 'claimed' });
+        }
+        if (claim.lostItemId) {
+          await LostItem.findByIdAndUpdate(claim.lostItemId, { status: 'claimed' });
+        }
+
+        await createNotificationHelper({
+          userId: claim.studentId,
+          title: 'Claim Approved',
+          message: 'Your claim has been approved. Contact the Lost & Found Team to collect your item.',
+          type: 'claim_approved',
+          relatedClaimId: claim._id,
+          relatedItemId: claim.foundItemId,
         });
+
+        approvedClaim = claim;
+      }
+    }
+
+    // Always update inMemoryStore if item is present or add it to guarantee persistence
+    const memClaim = inMemoryClaims.find((c) => String(c._id) === String(id));
+    if (memClaim) {
+      memClaim.status = 'approved';
+      memClaim.reviewedAt = new Date();
+
+      if (memClaim.foundItemId) {
+        const foundId = typeof memClaim.foundItemId === 'object' ? memClaim.foundItemId._id : memClaim.foundItemId;
+        const foundItem = inMemoryFoundItems.find((f) => String(f._id) === String(foundId));
+        if (foundItem) foundItem.status = 'claimed';
       }
 
-      claim.status = 'approved';
-      claim.reviewedBy = adminId;
-      claim.reviewedAt = new Date();
-      await claim.save();
-
-      // Update FoundItem status to 'claimed'
-      if (claim.foundItemId) {
-        await FoundItem.findByIdAndUpdate(claim.foundItemId, { status: 'claimed' });
+      if (memClaim.lostItemId) {
+        const lostId = typeof memClaim.lostItemId === 'object' ? memClaim.lostItemId._id : memClaim.lostItemId;
+        const lostItem = inMemoryLostItems.find((l) => String(l._id) === String(lostId));
+        if (lostItem) lostItem.status = 'claimed';
       }
 
-      // Update LostItem status to 'recovered'
-      if (claim.lostItemId) {
-        await LostItem.findByIdAndUpdate(claim.lostItemId, { status: 'recovered' });
-      }
-
-      // Dispatch Claim Approved Notification to student
-      await createNotificationHelper({
-        userId: claim.studentId,
-        title: 'Claim Approved',
-        message: 'Your claim has been approved. Contact the Lost & Found Team to collect your item.',
-        type: 'claim_approved',
-        relatedClaimId: claim._id,
-        relatedItemId: claim.foundItemId,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: 'Claim successfully approved! Student notification sent.',
-        data: claim,
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        message: 'Claim successfully approved (Dev mode).',
+      if (!approvedClaim) approvedClaim = memClaim;
+    } else if (approvedClaim) {
+      inMemoryClaims.push({
+        _id: String(approvedClaim._id),
+        studentId: approvedClaim.studentId,
+        lostItemId: approvedClaim.lostItemId,
+        foundItemId: approvedClaim.foundItemId,
+        verificationAnswers: approvedClaim.verificationAnswers,
+        verificationScore: approvedClaim.verificationScore,
+        status: 'approved',
+        reviewedAt: approvedClaim.reviewedAt || new Date(),
+        createdAt: approvedClaim.createdAt || new Date(),
       });
     }
+
+    if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Claim successfully approved! Item marked as claimed.',
+      data: approvedClaim || { _id: id, status: 'approved' },
+    });
   } catch (error) {
     console.error('Approve Claim Error:', error);
     return res.status(500).json({
       success: false,
       message: 'Server error approving claim.',
+    });
+  }
+};
+
+// @desc    Mark an approved claim item as physically handed over & recovered
+// @route   PUT /api/admin/claims/:id/recover
+// @access  Private/Admin
+const markClaimAsRecovered = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const rawAdminId = req.user ? (req.user.id || req.user._id) : null;
+    const adminId = mongoose.Types.ObjectId.isValid(rawAdminId) ? rawAdminId : null;
+    const { inMemoryClaims, inMemoryFoundItems, inMemoryLostItems, saveInMemoryStore } = require('../utils/inMemoryStore');
+
+    let updatedClaim = null;
+
+    if (isDbConnected() && mongoose.Types.ObjectId.isValid(id)) {
+      const claim = await Claim.findById(id);
+      if (!claim) {
+        return res.status(404).json({
+          success: false,
+          message: 'Claim not found.',
+        });
+      }
+
+      if (claim.status !== 'approved' && claim.status !== 'completed') {
+        return res.status(400).json({
+          success: false,
+          message: 'Only approved claims can be marked as recovered.',
+        });
+      }
+
+      claim.status = 'completed';
+      if (adminId) claim.reviewedBy = adminId;
+      claim.reviewedAt = new Date();
+      await claim.save();
+
+      if (claim.lostItemId) {
+        await LostItem.findByIdAndUpdate(claim.lostItemId, { status: 'recovered' });
+      }
+      if (claim.foundItemId) {
+        await FoundItem.findByIdAndUpdate(claim.foundItemId, { status: 'returned' });
+      }
+
+      await createNotificationHelper({
+        userId: claim.studentId,
+        title: 'Item Recovered!',
+        message: 'Your lost item has been successfully verified, handed over, and marked as Recovered.',
+        type: 'item_recovered',
+        relatedClaimId: claim._id,
+        relatedItemId: claim.foundItemId || claim.lostItemId,
+      });
+
+      updatedClaim = claim;
+    }
+
+    // Always sync with inMemoryStore if item is present
+    const memClaim = inMemoryClaims.find((c) => String(c._id) === String(id));
+    if (memClaim) {
+      memClaim.status = 'completed';
+      memClaim.reviewedAt = new Date();
+
+      if (memClaim.lostItemId) {
+        const lostId = typeof memClaim.lostItemId === 'object' ? memClaim.lostItemId._id : memClaim.lostItemId;
+        const lostItem = inMemoryLostItems.find((l) => String(l._id) === String(lostId));
+        if (lostItem) lostItem.status = 'recovered';
+      }
+
+      if (memClaim.foundItemId) {
+        const foundId = typeof memClaim.foundItemId === 'object' ? memClaim.foundItemId._id : memClaim.foundItemId;
+        const foundItem = inMemoryFoundItems.find((f) => String(f._id) === String(foundId));
+        if (foundItem) foundItem.status = 'returned';
+      }
+
+      if (!updatedClaim) updatedClaim = memClaim;
+    } else if (updatedClaim) {
+      inMemoryClaims.push({
+        _id: String(updatedClaim._id),
+        studentId: updatedClaim.studentId,
+        lostItemId: updatedClaim.lostItemId,
+        foundItemId: updatedClaim.foundItemId,
+        verificationAnswers: updatedClaim.verificationAnswers,
+        verificationScore: updatedClaim.verificationScore,
+        status: 'completed',
+        reviewedAt: updatedClaim.reviewedAt || new Date(),
+        createdAt: updatedClaim.createdAt || new Date(),
+      });
+    }
+
+    if (!updatedClaim) {
+      return res.status(404).json({
+        success: false,
+        message: 'Claim not found.',
+      });
+    }
+
+    if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Item physically handed over and status updated to Recovered!',
+      data: updatedClaim,
+    });
+  } catch (error) {
+    console.error('Mark Claim Recovered Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Server error marking claim as recovered.',
     });
   }
 };
@@ -265,48 +476,71 @@ const approveClaim = async (req, res) => {
 const rejectClaim = async (req, res) => {
   try {
     const { id } = req.params;
-    const adminId = req.user.id || req.user._id;
+    const rawAdminId = req.user ? (req.user.id || req.user._id) : null;
+    const adminId = mongoose.Types.ObjectId.isValid(rawAdminId) ? rawAdminId : null;
+    const { inMemoryClaims, inMemoryFoundItems, saveInMemoryStore } = require('../utils/inMemoryStore');
 
-    if (isDbConnected()) {
+    let rejectedClaim = null;
+
+    if (isDbConnected() && mongoose.Types.ObjectId.isValid(id)) {
       const claim = await Claim.findById(id);
-      if (!claim) {
-        return res.status(404).json({
-          success: false,
-          message: 'Claim request not found.',
+      if (claim) {
+        claim.status = 'rejected';
+        if (adminId) claim.reviewedBy = adminId;
+        claim.reviewedAt = new Date();
+        await claim.save();
+
+        if (claim.foundItemId) {
+          await FoundItem.findByIdAndUpdate(claim.foundItemId, { status: 'reported' });
+        }
+
+        await createNotificationHelper({
+          userId: claim.studentId,
+          title: 'Claim Status Update',
+          message: 'Your claim could not be verified.',
+          type: 'claim_rejected',
+          relatedClaimId: claim._id,
+          relatedItemId: claim.foundItemId,
         });
+
+        rejectedClaim = claim;
+      }
+    }
+
+    // Always update inMemoryStore if item is present
+    const memClaim = inMemoryClaims.find((c) => String(c._id) === String(id));
+    if (memClaim) {
+      memClaim.status = 'rejected';
+      memClaim.reviewedAt = new Date();
+
+      if (memClaim.foundItemId) {
+        const foundId = typeof memClaim.foundItemId === 'object' ? memClaim.foundItemId._id : memClaim.foundItemId;
+        const foundItem = inMemoryFoundItems.find((f) => String(f._id) === String(foundId));
+        if (foundItem) foundItem.status = 'reported';
       }
 
-      claim.status = 'rejected';
-      claim.reviewedBy = adminId;
-      claim.reviewedAt = new Date();
-      await claim.save();
-
-      // Keep found item available ('reported')
-      if (claim.foundItemId) {
-        await FoundItem.findByIdAndUpdate(claim.foundItemId, { status: 'reported' });
-      }
-
-      // Dispatch Claim Rejected Notification to student
-      await createNotificationHelper({
-        userId: claim.studentId,
-        title: 'Claim Status Update',
-        message: 'Your claim could not be verified.',
-        type: 'claim_rejected',
-        relatedClaimId: claim._id,
-        relatedItemId: claim.foundItemId,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: 'Claim rejected. Found item kept available for future matches.',
-        data: claim,
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        message: 'Claim rejected (Dev mode).',
+      if (!rejectedClaim) rejectedClaim = memClaim;
+    } else if (rejectedClaim) {
+      inMemoryClaims.push({
+        _id: String(rejectedClaim._id),
+        studentId: rejectedClaim.studentId,
+        lostItemId: rejectedClaim.lostItemId,
+        foundItemId: rejectedClaim.foundItemId,
+        verificationAnswers: rejectedClaim.verificationAnswers,
+        verificationScore: rejectedClaim.verificationScore,
+        status: 'rejected',
+        reviewedAt: rejectedClaim.reviewedAt || new Date(),
+        createdAt: rejectedClaim.createdAt || new Date(),
       });
     }
+
+    if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Claim rejected. Found item kept available for future matches.',
+      data: rejectedClaim || { _id: id, status: 'rejected' },
+    });
   } catch (error) {
     console.error('Reject Claim Error:', error);
     return res.status(500).json({
@@ -322,38 +556,41 @@ const rejectClaim = async (req, res) => {
 const requestMoreVerification = async (req, res) => {
   try {
     const { id } = req.params;
+    const { inMemoryClaims, saveInMemoryStore } = require('../utils/inMemoryStore');
 
-    if (isDbConnected()) {
+    let updatedClaim = null;
+
+    if (isDbConnected() && mongoose.Types.ObjectId.isValid(id)) {
       const claim = await Claim.findById(id);
-      if (!claim) {
-        return res.status(404).json({
-          success: false,
-          message: 'Claim request not found.',
+      if (claim) {
+        claim.status = 'under_review';
+        await claim.save();
+
+        await createNotificationHelper({
+          userId: claim.studentId,
+          title: 'Verification Details Requested',
+          message: 'The Lost & Found Team requested additional details for your claim.',
+          type: 'claim_submitted',
+          relatedClaimId: claim._id,
         });
+
+        updatedClaim = claim;
       }
-
-      claim.status = 'under_review';
-      await claim.save();
-
-      await createNotificationHelper({
-        userId: claim.studentId,
-        title: 'Verification Details Requested',
-        message: 'The Lost & Found Team requested additional details for your claim.',
-        type: 'claim_submitted',
-        relatedClaimId: claim._id,
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: 'Claim status updated to Under Review.',
-        data: claim,
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        message: 'Claim status updated to Under Review (Dev mode).',
-      });
     }
+
+    const memClaim = inMemoryClaims.find((c) => String(c._id) === String(id));
+    if (memClaim) {
+      memClaim.status = 'under_review';
+      if (!updatedClaim) updatedClaim = memClaim;
+    }
+
+    if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Claim status updated to Under Review.',
+      data: updatedClaim || { _id: id, status: 'under_review' },
+    });
   } catch (error) {
     console.error('Request Info Error:', error);
     return res.status(500).json({
@@ -368,28 +605,41 @@ const requestMoreVerification = async (req, res) => {
 // @access  Private/Admin
 const getAllLostItems = async (req, res) => {
   try {
+    const { inMemoryLostItems } = require('../utils/inMemoryStore');
+    let dbItems = [];
+
     if (isDbConnected()) {
-      const items = await LostItem.find()
+      dbItems = await LostItem.find()
         .populate('userId', 'fullName email phone department year')
         .sort({ createdAt: -1 });
+    }
 
-      return res.status(200).json({
-        success: true,
-        count: items.length,
-        data: items,
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        count: 0,
-        data: [],
+    const itemMap = new Map();
+    if (dbItems && dbItems.length > 0) {
+      dbItems.forEach((i) => itemMap.set(String(i._id), i));
+    }
+    if (inMemoryLostItems && inMemoryLostItems.length > 0) {
+      inMemoryLostItems.forEach((i) => {
+        if (i && i._id && !itemMap.has(String(i._id))) {
+          itemMap.set(String(i._id), i);
+        }
       });
     }
+
+    const allItems = Array.from(itemMap.values());
+
+    return res.status(200).json({
+      success: true,
+      count: allItems.length,
+      data: allItems,
+    });
   } catch (error) {
     console.error('Get All Lost Items Admin Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error retrieving lost items.',
+    const { inMemoryLostItems } = require('../utils/inMemoryStore');
+    return res.status(200).json({
+      success: true,
+      count: inMemoryLostItems.length,
+      data: inMemoryLostItems,
     });
   }
 };
@@ -399,28 +649,41 @@ const getAllLostItems = async (req, res) => {
 // @access  Private/Admin
 const getAllFoundItems = async (req, res) => {
   try {
+    const { inMemoryFoundItems } = require('../utils/inMemoryStore');
+    let dbItems = [];
+
     if (isDbConnected()) {
-      const items = await FoundItem.find()
+      dbItems = await FoundItem.find()
         .populate('reportedBy', 'fullName email phone department year')
         .sort({ createdAt: -1 });
+    }
 
-      return res.status(200).json({
-        success: true,
-        count: items.length,
-        data: items,
-      });
-    } else {
-      return res.status(200).json({
-        success: true,
-        count: 0,
-        data: [],
+    const itemMap = new Map();
+    if (dbItems && dbItems.length > 0) {
+      dbItems.forEach((i) => itemMap.set(String(i._id), i));
+    }
+    if (inMemoryFoundItems && inMemoryFoundItems.length > 0) {
+      inMemoryFoundItems.forEach((i) => {
+        if (i && i._id && !itemMap.has(String(i._id))) {
+          itemMap.set(String(i._id), i);
+        }
       });
     }
+
+    const allItems = Array.from(itemMap.values());
+
+    return res.status(200).json({
+      success: true,
+      count: allItems.length,
+      data: allItems,
+    });
   } catch (error) {
     console.error('Get All Found Items Admin Error:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Server error retrieving found items.',
+    const { inMemoryFoundItems } = require('../utils/inMemoryStore');
+    return res.status(200).json({
+      success: true,
+      count: inMemoryFoundItems.length,
+      data: inMemoryFoundItems,
     });
   }
 };
@@ -462,6 +725,7 @@ module.exports = {
   getDashboardStats,
   getAllClaims,
   approveClaim,
+  markClaimAsRecovered,
   rejectClaim,
   requestMoreVerification,
   getAllLostItems,

@@ -22,6 +22,8 @@ const Profile = () => {
     itemsRecovered: 0,
   });
 
+  const [returnedHistory, setReturnedHistory] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [profileMsg, setProfileMsg] = useState({ type: '', text: '' });
@@ -55,6 +57,7 @@ const Profile = () => {
             claimsSubmitted: 0,
             itemsRecovered: 0,
           });
+          setReturnedHistory(res.data.data.returnedHistory || []);
         }
       } catch (err) {
         console.error('Fetch profile error:', err);
@@ -69,10 +72,10 @@ const Profile = () => {
           role: authUser?.role || 'student',
         });
         setActivitySummary({
-          totalLostReports: 2,
-          totalFoundReports: 1,
-          claimsSubmitted: 1,
-          itemsRecovered: 1,
+          totalLostReports: 0,
+          totalFoundReports: 0,
+          claimsSubmitted: 0,
+          itemsRecovered: 0,
         });
       } finally {
         setLoading(false);
@@ -491,6 +494,68 @@ const Profile = () => {
                 </button>
               </div>
             </form>
+          </section>
+
+          {/* SECTION 4: RETURNED / RECOVERED ITEMS HISTORY */}
+          <section
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.75)',
+              border: '1px solid rgba(16, 185, 129, 0.3)',
+              borderRadius: '20px',
+              padding: '1.75rem',
+            }}
+          >
+            <h3 style={{ margin: '0 0 1.25rem', color: '#ffffff', fontSize: '1.2rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              🎉 Returned / Recovered Items History
+            </h3>
+
+            {returnedHistory.length === 0 ? (
+              <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '1.5rem', borderRadius: '12px', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
+                No returned or recovered items recorded yet.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {returnedHistory.map((item, idx) => (
+                  <div
+                    key={item.id || idx}
+                    style={{
+                      backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                      border: '1px solid rgba(16, 185, 129, 0.3)',
+                      borderRadius: '14px',
+                      padding: '1.25rem',
+                      display: 'flex',
+                      justify: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '1rem',
+                    }}
+                  >
+                    <div>
+                      <div style={{ fontSize: '1.1rem', fontWeight: '800', color: '#ffffff' }}>
+                        {item.itemName}
+                      </div>
+                      <div style={{ fontSize: '0.85rem', color: '#94a3b8', marginTop: '0.25rem' }}>
+                        Category: {item.category} • Handover Date: {new Date(item.recoveredDate).toLocaleDateString()}
+                      </div>
+                    </div>
+
+                    <span
+                      style={{
+                        backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                        border: '1px solid rgba(16, 185, 129, 0.5)',
+                        color: '#34d399',
+                        padding: '0.45rem 1.1rem',
+                        borderRadius: '20px',
+                        fontSize: '0.85rem',
+                        fontWeight: '700',
+                      }}
+                    >
+                      Item Returned ✓
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       )}

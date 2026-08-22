@@ -10,14 +10,14 @@ const ClaimItem = () => {
   // Passed state from Find My Item page or fallback match data
   const [matchData, setMatchData] = useState(
     location.state?.match || {
-      foundItemId: matchId,
-      category: 'Watch',
-      generalItemName: 'Wrist Watch',
-      foundLocation: 'Canteen',
-      foundDate: new Date(),
-      approximateTime: 'Around 3 PM',
-      matchScore: 87,
-      matchLevel: 'High Potential Match',
+      foundItemId: matchId || '',
+      category: '',
+      generalItemName: '',
+      foundLocation: '',
+      foundDate: null,
+      approximateTime: '',
+      matchScore: 0,
+      matchLevel: '',
     }
   );
 
@@ -116,7 +116,7 @@ const ClaimItem = () => {
           <span className="heading-gradient">Verification</span>
         </h1>
         <p style={{ color: '#94a3b8', fontSize: '1rem' }}>
-          Answer ownership verification questions to submit your claim request to the Lost & Found team.
+          Answer Student Care verification questions to submit your claim request to the Student Care team.
         </p>
       </div>
 
@@ -235,7 +235,7 @@ const ClaimItem = () => {
           {/* SECTION 2: VERIFICATION QUESTIONS FORM */}
           <form onSubmit={handleSubmit} className="form-card">
             <h2 style={{ fontSize: '1.3rem', color: '#ffffff', fontWeight: '700', marginBottom: '1.5rem', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0.75rem' }}>
-              📝 Ownership Verification Questions
+              📝 Student Care Verification Questions
             </h2>
 
             {/* QUESTION 1 */}

@@ -265,7 +265,7 @@ const FindMyItem = () => {
           >
             <span>🔒</span>
             <span>
-              <strong>Privacy Protection Active:</strong> Detailed photos, brand names, and private marks are strictly hidden. You must verify ownership when requesting a claim.
+              <strong>Privacy Protection Active:</strong> Detailed photos, brand names, and private marks are strictly hidden. You must complete Student Care verification when requesting a claim.
             </span>
           </div>
 

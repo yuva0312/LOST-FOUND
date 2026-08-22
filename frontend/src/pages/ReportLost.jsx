@@ -40,8 +40,15 @@ const CLASSROOM_BLOCKS = [
   'Tifac core',
 ];
 
-const ReportLost = () => {
+const ReportLost = ({ onReturnToDashboard }) => {
   const navigate = useNavigate();
+
+  const handleReturnToDashboard = () => {
+    if (typeof onReturnToDashboard === 'function') {
+      onReturnToDashboard();
+    }
+    navigate('/dashboard');
+  };
 
   const [formData, setFormData] = useState({
     category: '',
@@ -63,7 +70,6 @@ const ReportLost = () => {
     imageUrl: '',
   });
 
-  const [imagePreview, setImagePreview] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [submittedReport, setSubmittedReport] = useState(null);
@@ -75,27 +81,6 @@ const ReportLost = () => {
       [name]: value,
     }));
     if (error) setError('');
-  };
-
-  const handleImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        setError('Image file size must be less than 5MB.');
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setImagePreview(base64String);
-        setFormData((prev) => ({
-          ...prev,
-          imageUrl: base64String,
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
   };
 
   const handleSubmit = async (e) => {
@@ -202,7 +187,6 @@ const ReportLost = () => {
       privateDescription: '',
       imageUrl: '',
     });
-    setImagePreview('');
     setError('');
   };
 
@@ -241,7 +225,14 @@ const ReportLost = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link to="/my-reports" className="btn-register-glow" style={{ padding: '0.8rem 2rem', fontSize: '1rem' }}>
+            <button
+              onClick={handleReturnToDashboard}
+              className="btn-register-glow"
+              style={{ padding: '0.8rem 2rem', fontSize: '1rem', border: 'none', cursor: 'pointer' }}
+            >
+              Return to Dashboard
+            </button>
+            <Link to="/my-reports" className="btn-outline" style={{ padding: '0.8rem 2rem', fontSize: '1rem', color: '#ffffff' }}>
               View My Reports
             </Link>
             <button
@@ -481,7 +472,7 @@ const ReportLost = () => {
             >
               <span style={{ fontSize: '1.25rem' }}>🔒</span>
               <span>
-                These details are private and will not be publicly shown. They may be used for ownership verification.
+                These details are private and will not be publicly shown. They may be used for Student Care verification.
               </span>
             </div>
 
@@ -565,44 +556,6 @@ const ReportLost = () => {
                 style={{ resize: 'vertical' }}
               ></textarea>
             </div>
-          </div>
-
-          {/* SECTION 5 — OPTIONAL IMAGE */}
-          <div className="form-section" style={{ marginBottom: '2.5rem' }}>
-            <h3 className="section-title" style={{ fontSize: '1.25rem', color: '#c084fc', marginBottom: '1.25rem', borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '0.5rem' }}>
-              SECTION 5 — OPTIONAL IMAGE
-            </h3>
-
-            <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginBottom: '1rem' }}>
-              💡 <em>Important: The image must not be publicly displayed to other students during matching.</em>
-            </p>
-
-            <div className="form-group">
-              <label className="form-label" htmlFor="imageUpload">Upload Item Image (Optional)</label>
-              <input
-                type="file"
-                id="imageUpload"
-                accept="image/*"
-                className="form-input"
-                onChange={handleImageUpload}
-                style={{ padding: '0.5rem' }}
-              />
-            </div>
-
-            {imagePreview && (
-              <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                <img
-                  src={imagePreview}
-                  alt="Item Preview"
-                  style={{
-                    maxHeight: '200px',
-                    borderRadius: '12px',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                  }}
-                />
-              </div>
-            )}
           </div>
 
           {/* SUBMIT BUTTON */}

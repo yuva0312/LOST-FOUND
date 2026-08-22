@@ -5,6 +5,7 @@ const {
   getDashboardStats,
   getAllClaims,
   approveClaim,
+  markClaimAsRecovered,
   rejectClaim,
   requestMoreVerification,
   getAllLostItems,
@@ -20,6 +21,7 @@ router.post('/login', adminLogin);
 router.get('/dashboard', adminProtect, getDashboardStats);
 router.get('/claims', adminProtect, getAllClaims);
 router.put('/claims/:id/approve', adminProtect, approveClaim);
+router.put('/claims/:id/recover', adminProtect, markClaimAsRecovered);
 router.put('/claims/:id/reject', adminProtect, rejectClaim);
 router.put('/claims/:id/request-info', adminProtect, requestMoreVerification);
 

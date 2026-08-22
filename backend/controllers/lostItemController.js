@@ -1,6 +1,6 @@
 const LostItem = require('../models/LostItem');
 const mongoose = require('mongoose');
-const { inMemoryLostItems } = require('../utils/inMemoryStore');
+const { inMemoryLostItems, saveInMemoryStore } = require('../utils/inMemoryStore');
 
 // Helper to check DB connection state
 const isDbConnected = () => {
@@ -110,6 +110,7 @@ const createLostItem = async (req, res) => {
       };
 
       inMemoryLostItems.push(newItem);
+      if (typeof saveInMemoryStore === 'function') saveInMemoryStore();
 
       return res.status(201).json({
         success: true,

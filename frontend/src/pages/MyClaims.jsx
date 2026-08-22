@@ -62,11 +62,11 @@ const MyClaims = () => {
         icon: '❌',
       };
     }
-    if (s === 'completed') {
+    if (s === 'completed' || s === 'recovered') {
       return {
-        bg: 'rgba(168, 85, 247, 0.15)',
-        color: '#c084fc',
-        label: 'Completed / Returned',
+        bg: 'rgba(52, 211, 153, 0.15)',
+        color: '#34d399',
+        label: 'Recovered & Handed Over',
         icon: '🎉',
       };
     }
@@ -97,7 +97,7 @@ const MyClaims = () => {
       >
         <div>
           <div className="badge-pill" style={{ marginBottom: '0.5rem' }}>
-            <span className="badge-dot" style={{ backgroundColor: '#ec4899', boxShadow: '0 0 8px #ec4899' }}></span> Ownership Claims
+            <span className="badge-dot" style={{ backgroundColor: '#ec4899', boxShadow: '0 0 8px #ec4899' }}></span> Student Care Claims
           </div>
           <h1 className="hero-heading" style={{ fontSize: '2.2rem', marginBottom: '0.25rem' }}>
             <span className="heading-white">My Submitted</span>{' '}
@@ -137,7 +137,7 @@ const MyClaims = () => {
           <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🛡️</div>
           <h3 style={{ fontSize: '1.4rem', color: '#ffffff', marginBottom: '0.5rem' }}>No Claims Submitted Yet</h3>
           <p style={{ color: '#94a3b8', marginBottom: '1.5rem', maxWidth: '450px', margin: '0 auto 1.5rem' }}>
-            When you find a potential match for your lost item, click "Request Claim" to submit ownership verification.
+            When you find a potential match for your lost item, click "Request Claim" to submit Student Care verification.
           </p>
           <Link to="/find-my-item" className="btn-register-glow" style={{ padding: '0.75rem 2rem', display: 'inline-block' }}>
             Go to Find My Item
@@ -196,10 +196,6 @@ const MyClaims = () => {
                   </div>
 
                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-                    <span style={{ fontSize: '0.85rem', color: '#10b981', fontWeight: '700' }}>
-                      Verification Score: {claim.verificationScore || 75}%
-                    </span>
-
                     <button
                       onClick={() => toggleExpand(claimId)}
                       className="btn-outline"

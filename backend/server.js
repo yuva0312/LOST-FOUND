@@ -33,7 +33,6 @@ app.get('/api/health', (req, res) => {
     message: 'Lost & Found Backend is running'
   });
 });
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/lost-items', lostItemRoutes);
@@ -45,7 +44,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/users', userRoutes);
 
 const PORT = process.env.PORT || 5000;
-
 const startServer = async () => {
   // Attempt DB connection if valid URI provided
   if (process.env.MONGODB_URI && process.env.MONGODB_URI !== 'your_mongodb_connection_string') {
